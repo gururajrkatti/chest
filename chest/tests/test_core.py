@@ -430,3 +430,16 @@ def test_store_fnames_relocatable():
                 c2.update(c1)
                 c2.flush()
                 assert c2[('spam', 'eggs')] == 'spam and eggs'
+
+
+def test_memory_usage():
+    with tmp_chest() as c:
+        assert c.memory_usage == 0
+        c[1] = 1
+        mem1 = c.memory_usage
+        assert mem1 > 0
+        c[2] = 2
+        assert c.memory_usage > mem1
+
+        c.flush()
+        assert c.memory_usage == 0

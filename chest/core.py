@@ -92,6 +92,7 @@ class Chest(MutableMapping):
         # Amount of memory we're allowed to use
         self.available_memory = (available_memory if available_memory
                                  is not None else DEFAULT_AVAILABLE_MEMORY)
+        self.memory_usage = sum(map(nbytes, self.inmem.values()))
         # Functions to control disk I/O
         self.load = load
         self.dump = dump
@@ -137,6 +138,7 @@ class Chest(MutableMapping):
             except TypeError:
                 os.remove(fn)
                 raise
+        self.memory_usage -= nbytes(self.inmem[key])
         del self.inmem[key]
 
     def get_from_disk(self, key):
@@ -151,6 +153,7 @@ class Chest(MutableMapping):
             value = self.load(f)
 
         self.inmem[key] = value
+        self.memory_usage += nbytes(value)
 
     def __getitem__(self, key):
         with self.lock:
@@ -175,6 +178,7 @@ class Chest(MutableMapping):
 
     def __delitem__(self, key):
         if key in self.inmem:
+            self.memory_usage -= nbytes(self.inmem[key])
             del self.inmem[key]
         if key in self.heap:
             del self.heap[key]
@@ -190,6 +194,7 @@ class Chest(MutableMapping):
             if key in self._keys:
                 del self[key]
 
+            self.memory_usage += nbytes(value)
             self.inmem[key] = value
             self._keys[key] = self._key_to_filename(key)
             self._update_lru(key)
@@ -218,28 +223,18 @@ class Chest(MutableMapping):
     def __contains__(self, key):
         return key in self._keys
 
-    @property
-    def memory_usage(self):
-        result = sum(map(nbytes, self.inmem.values()))
-        return result
-
     def shrink(self):
         """
         Spill in-memory storage to disk until usage is less than available
-
-        Just implemented with "dump the biggest" for now.  This could be
-        improved to LRU or some such.  Ideally this becomes an input.
         """
-        mem = self.memory_usage
-        if mem < self.available_memory:
+        if self.memory_usage < self.available_memory:
             return
 
-        while mem > self.available_memory:
+        while self.memory_usage > self.available_memory:
             key, _ = self.heap.popitem()
             data = self.inmem[key]
             try:
                 self.move_to_disk(key)
-                mem -= nbytes(data)
             except TypeError:
                 pass
 
