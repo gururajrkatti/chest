@@ -302,9 +302,9 @@ def nbytes(o):
     """
     if hasattr(o, 'nbytes'):
         return o.nbytes
-    if hasattr(o, 'values') and hasattr(o, 'index'):
-        # http://stackoverflow.com/questions/18089667/how-to-estimate-how-much-memory-a-pandas-dataframe-will-need
-        return (sum(block.values.nbytes for block in o.blocks.values())
-                + o.index.nbytes)  # pragma: no cover
+    n = str(type(o))
+    if 'pandas' in n and ('DataFrame' in n or 'Series' in n):
+        return sum(b.values.nbytes * (10 if b.values.dtype == 'O' else 1)
+                   for b in o._data.blocks)
     else:
         return sys.getsizeof(o)
