@@ -6,7 +6,10 @@ import tempfile
 import shutil
 import os
 import re
-import pickle
+try:
+    import cPickle as pickle
+except ImportError:  # pragma: no cover
+    import pickle  # pragma: no cover
 from heapdict import heapdict
 import hashlib
 
@@ -305,6 +308,6 @@ def nbytes(o):
     n = str(type(o))
     if 'pandas' in n and ('DataFrame' in n or 'Series' in n):
         return sum(b.values.nbytes * (10 if b.values.dtype == 'O' else 1)
-                   for b in o._data.blocks)
+                   for b in o._data.blocks)  # pragma: no cover
     else:
         return sys.getsizeof(o)
