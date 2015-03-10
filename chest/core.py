@@ -164,7 +164,7 @@ class Chest(MutableMapping):
                 value = self.inmem[key]
             else:
                 if key not in self._keys:
-                    raise KeyError("Key not found: %s" % key)
+                    raise KeyError("Key not found: %s" % str(key))
 
                 self.get_from_disk(key)
                 value = self.inmem[key]

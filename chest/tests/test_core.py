@@ -183,6 +183,7 @@ def test_get_from_disk():
 def test_errors():
     with tmp_chest() as c:
         assert raises(KeyError, lambda: c[1])
+        assert raises(KeyError, lambda: c[(1, 2)])
 
 
 def test_reset_item_is_consistent():
