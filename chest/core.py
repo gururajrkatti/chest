@@ -306,6 +306,7 @@ class Chest(MutableMapping):
             os.link(old_fn, new_fn)
 
     def prefetch(self, keys):
+        """ Fetch a list of pairs into memory """
         if not isinstance(keys, list):
             keys = [keys, ]
         keys = [k for k in keys if k not in self.inmem]
