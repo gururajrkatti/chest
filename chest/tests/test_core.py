@@ -28,16 +28,6 @@ def tmp_chest(*args, **kwargs):
             pass
 
 
-@contextmanager
-def open_many(fnames, mode='rb'):
-    fs = []
-    for fn in fnames:
-        fs.append(open(fn, mode=mode))
-    yield fs
-    for f in fs:
-        f.close()
-
-
 def my_key_to_fname(key):
     fname = str(hashlib.md5(str(key).encode()).hexdigest())
     return fname
@@ -456,7 +446,7 @@ def test_memory_usage():
         assert c.memory_usage == 0
 
 
-def test_cache_many():
+def test_prefetch():
     with tmp_chest(on_miss=raise_KeyError) as c:
         c[1] = 1
         c[2] = 2
@@ -464,21 +454,7 @@ def test_cache_many():
         assert not raises(KeyError, lambda: c[1])
         c.flush()
         assert raises(KeyError, lambda: c[1])
-        c.cache_many(1)
+        c.prefetch(1)
         assert not raises(KeyError, lambda: c[1])
-        c.cache_many([1, 2])
-        assert not raises(KeyError, lambda: c[2])
-
-
-def test_open_many():
-    with tmp_chest(open_many=open_many, on_miss=raise_KeyError) as c:
-        c[1] = 1
-        c[2] = 2
-        c[3] = 3
-        assert not raises(KeyError, lambda: c[1])
-        c.flush()
-        assert raises(KeyError, lambda: c[1])
-        c.cache_many(1)
-        assert not raises(KeyError, lambda: c[1])
-        c.cache_many([1, 2])
+        c.prefetch([1, 2])
         assert not raises(KeyError, lambda: c[2])

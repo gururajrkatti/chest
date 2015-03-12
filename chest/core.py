@@ -1,6 +1,7 @@
 from collections import MutableMapping
 from functools import partial
 from threading import Lock
+from contextlib import contextmanager
 import sys
 import tempfile
 import shutil
@@ -34,6 +35,16 @@ def key_to_filename(key):
 
 def _do_nothing(*args, **kwargs):
     pass
+
+
+@contextmanager
+def _open_many(fnames, mode='rb'):
+    fs = []
+    for fn in fnames:
+        fs.append(open(fn, mode=mode))
+    yield fs
+    for f in fs:
+        f.close()
 
 
 class Chest(MutableMapping):
@@ -82,7 +93,7 @@ class Chest(MutableMapping):
                  key_to_filename=key_to_filename,
                  on_miss=_do_nothing, on_overflow=_do_nothing,
                  open=open,
-                 open_many=None,
+                 open_many=_open_many,
                  mode='b'):
         # In memory storage
         self.inmem = data or dict()
@@ -294,24 +305,19 @@ class Chest(MutableMapping):
                 os.makedirs(dir)
             os.link(old_fn, new_fn)
 
-    def cache_many(self, keys):
+    def prefetch(self, keys):
         if not isinstance(keys, list):
             keys = [keys, ]
-        if self.open_many is None:
-            for k in keys:
-                self.get_from_disk(k)
+        keys = [k for k in keys if k not in self.inmem]
+        fns = [self.key_to_filename(k) for k in keys]
+        with self.open_many(fns, mode='r'+self.mode) as fs:
+            for f, k in zip(fs, keys):
+                value = self.load(f)
+                self.inmem[k] = value
+                self.memory_usage += nbytes(value)
                 self._update_lru(k)
-        else:
-            keys = [k for k in keys if k not in self.inmem]
-            fns = [self.key_to_filename(k) for k in keys]
-            with self.open_many(fns, mode='r'+self.mode) as fs:
-                for f, k in zip(fs, keys):
-                    value = self.load(f)
-                    self.inmem[k] = value
-                    self.memory_usage += nbytes(value)
-                    self._update_lru(k)
-                    with self.lock:
-                        self.shrink()
+                with self.lock:
+                    self.shrink()
 
 
 def nbytes(o):
