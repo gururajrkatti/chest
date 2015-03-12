@@ -81,7 +81,7 @@ class Chest(MutableMapping):
                  load=pickle.load,
                  key_to_filename=key_to_filename,
                  on_miss=_do_nothing, on_overflow=_do_nothing,
-                 _open=open,
+                 open=open,
                  mode='b'):
         # In memory storage
         self.inmem = data or dict()
@@ -101,7 +101,7 @@ class Chest(MutableMapping):
         self.load = load
         self.dump = dump
         self.mode = mode
-        self.open = _open
+        self.open = open
         self._key_to_filename = key_to_filename
 
         keyfile = os.path.join(self.path, '.keys')
