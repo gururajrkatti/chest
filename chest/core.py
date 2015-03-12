@@ -81,6 +81,7 @@ class Chest(MutableMapping):
                  load=pickle.load,
                  key_to_filename=key_to_filename,
                  on_miss=_do_nothing, on_overflow=_do_nothing,
+                 _open=open,
                  mode='b'):
         # In memory storage
         self.inmem = data or dict()
@@ -100,12 +101,15 @@ class Chest(MutableMapping):
         self.load = load
         self.dump = dump
         self.mode = mode
+        self.open = _open
         self._key_to_filename = key_to_filename
 
         keyfile = os.path.join(self.path, '.keys')
-        if os.path.exists(keyfile):
-            with open(keyfile, mode='r'+self.mode) as f:
+        try:
+            with self.open(keyfile, mode='r'+self.mode) as f:
                 self._keys = dict(self.load(f))
+        except:
+            pass
 
         self.lock = Lock()
 
@@ -136,7 +140,7 @@ class Chest(MutableMapping):
             if not os.path.exists(dir):
                 os.makedirs(dir)
             try:
-                with open(fn, mode='w'+self.mode) as f:
+                with self.open(fn, mode='w'+self.mode) as f:
                     self.dump(self.inmem[key], f)
             except TypeError:
                 os.remove(fn)
@@ -152,7 +156,7 @@ class Chest(MutableMapping):
         self._on_miss(key)
 
         fn = self.key_to_filename(key)
-        with open(fn, mode='r'+self.mode) as f:
+        with self.open(fn, mode='r'+self.mode) as f:
             value = self.load(f)
 
         self.inmem[key] = value
@@ -247,7 +251,7 @@ class Chest(MutableMapping):
 
     def write_keys(self):
         fn = os.path.join(self.path, '.keys')
-        with open(fn, mode='w'+self.mode) as f:
+        with self.open(fn, mode='w'+self.mode) as f:
             self.dump(list(self._keys.items()), f)
 
     def flush(self):
