@@ -82,6 +82,7 @@ class Chest(MutableMapping):
                  key_to_filename=key_to_filename,
                  on_miss=_do_nothing, on_overflow=_do_nothing,
                  open=open,
+                 open_many=None,
                  mode='b'):
         # In memory storage
         self.inmem = data or dict()
@@ -102,6 +103,7 @@ class Chest(MutableMapping):
         self.dump = dump
         self.mode = mode
         self.open = open
+        self.open_many = open_many
         self._key_to_filename = key_to_filename
 
         keyfile = os.path.join(self.path, '.keys')
@@ -153,8 +155,6 @@ class Chest(MutableMapping):
         if key in self.inmem:
             return
 
-        self._on_miss(key)
-
         fn = self.key_to_filename(key)
         with self.open(fn, mode='r'+self.mode) as f:
             value = self.load(f)
@@ -170,6 +170,7 @@ class Chest(MutableMapping):
                 if key not in self._keys:
                     raise KeyError("Key not found: %s" % str(key))
 
+                self._on_miss(key)
                 self.get_from_disk(key)
                 value = self.inmem[key]
                 self._update_lru(key)
@@ -292,6 +293,25 @@ class Chest(MutableMapping):
             if not os.path.exists(dir):
                 os.makedirs(dir)
             os.link(old_fn, new_fn)
+
+    def cache_many(self, keys):
+        if not isinstance(keys, list):
+            keys = [keys, ]
+        if self.open_many is None:
+            for k in keys:
+                self.get_from_disk(k)
+                self._update_lru(k)
+        else:
+            keys = [k for k in keys if k not in self.inmem]
+            fns = [self.key_to_filename(k) for k in keys]
+            with self.open_many(fns, mode='r'+self.mode) as fs:
+                for f, k in zip(fs, keys):
+                    value = self.load(f)
+                    self.inmem[k] = value
+                    self.memory_usage += nbytes(value)
+                    self._update_lru(k)
+                    with self.lock:
+                        self.shrink()
 
 
 def nbytes(o):

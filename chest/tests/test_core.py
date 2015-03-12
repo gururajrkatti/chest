@@ -6,7 +6,7 @@ import shutil
 import pickle
 from contextlib import contextmanager
 import numpy as np
-from chest.utils import raises
+from chest.utils import raises, raise_KeyError
 import time
 import hashlib
 
@@ -26,6 +26,16 @@ def tmp_chest(*args, **kwargs):
             del c
         except:
             pass
+
+
+@contextmanager
+def open_many(fnames, mode='rb'):
+    fs = []
+    for fn in fnames:
+        fs.append(open(fn, mode=mode))
+    yield fs
+    for f in fs:
+        f.close()
 
 
 def my_key_to_fname(key):
@@ -444,3 +454,31 @@ def test_memory_usage():
 
         c.flush()
         assert c.memory_usage == 0
+
+
+def test_cache_many():
+    with tmp_chest(on_miss=raise_KeyError) as c:
+        c[1] = 1
+        c[2] = 2
+        c[3] = 3
+        assert not raises(KeyError, lambda: c[1])
+        c.flush()
+        assert raises(KeyError, lambda: c[1])
+        c.cache_many(1)
+        assert not raises(KeyError, lambda: c[1])
+        c.cache_many([1, 2])
+        assert not raises(KeyError, lambda: c[2])
+
+
+def test_open_many():
+    with tmp_chest(open_many=open_many, on_miss=raise_KeyError) as c:
+        c[1] = 1
+        c[2] = 2
+        c[3] = 3
+        assert not raises(KeyError, lambda: c[1])
+        c.flush()
+        assert raises(KeyError, lambda: c[1])
+        c.cache_many(1)
+        assert not raises(KeyError, lambda: c[1])
+        c.cache_many([1, 2])
+        assert not raises(KeyError, lambda: c[2])
