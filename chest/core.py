@@ -1,6 +1,7 @@
 from collections import MutableMapping
 from functools import partial
 from threading import Lock
+from contextlib import contextmanager
 import sys
 import tempfile
 import shutil
@@ -34,6 +35,16 @@ def key_to_filename(key):
 
 def _do_nothing(*args, **kwargs):
     pass
+
+
+@contextmanager
+def _open_many(fnames, mode='rb'):
+    fs = []
+    for fn in fnames:
+        fs.append(open(fn, mode=mode))
+    yield fs
+    for f in fs:
+        f.close()
 
 
 class Chest(MutableMapping):
@@ -82,6 +93,7 @@ class Chest(MutableMapping):
                  key_to_filename=key_to_filename,
                  on_miss=_do_nothing, on_overflow=_do_nothing,
                  open=open,
+                 open_many=_open_many,
                  mode='b'):
         # In memory storage
         self.inmem = data or dict()
@@ -102,6 +114,7 @@ class Chest(MutableMapping):
         self.dump = dump
         self.mode = mode
         self.open = open
+        self.open_many = open_many
         self._key_to_filename = key_to_filename
 
         keyfile = os.path.join(self.path, '.keys')
@@ -153,8 +166,6 @@ class Chest(MutableMapping):
         if key in self.inmem:
             return
 
-        self._on_miss(key)
-
         fn = self.key_to_filename(key)
         with self.open(fn, mode='r'+self.mode) as f:
             value = self.load(f)
@@ -170,6 +181,7 @@ class Chest(MutableMapping):
                 if key not in self._keys:
                     raise KeyError("Key not found: %s" % str(key))
 
+                self._on_miss(key)
                 self.get_from_disk(key)
                 value = self.inmem[key]
                 self._update_lru(key)
@@ -292,6 +304,21 @@ class Chest(MutableMapping):
             if not os.path.exists(dir):
                 os.makedirs(dir)
             os.link(old_fn, new_fn)
+
+    def prefetch(self, keys):
+        """ Fetch a list of pairs into memory """
+        if not isinstance(keys, list):
+            keys = [keys, ]
+        keys = [k for k in keys if k not in self.inmem]
+        fns = [self.key_to_filename(k) for k in keys]
+        with self.open_many(fns, mode='r'+self.mode) as fs:
+            for f, k in zip(fs, keys):
+                value = self.load(f)
+                self.inmem[k] = value
+                self.memory_usage += nbytes(value)
+                self._update_lru(k)
+                with self.lock:
+                    self.shrink()
 
 
 def nbytes(o):
