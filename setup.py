@@ -2,10 +2,9 @@
 
 from os.path import exists
 from setuptools import setup
-import chest
 
 setup(name='chest',
-      version=chest.__version__,
+      version='0.2.1',
       description='Simple on-disk dictionary',
       url='http://github.com/mrocklin/chest/',
       author='https://raw.github.com/mrocklin/chest/master/AUTHORS.md',
