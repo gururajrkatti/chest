@@ -103,8 +103,6 @@ class Chest(MutableMapping):
         self._explicitly_given_path = path is not None
         # Diretory where the on-disk data will be held
         self.path = path or tempfile.mkdtemp('.chest')
-        if not os.path.exists(self.path):
-            os.mkdir(self.path)
         # Amount of memory we're allowed to use
         self.available_memory = (available_memory if available_memory
                                  is not None else DEFAULT_AVAILABLE_MEMORY)
@@ -122,7 +120,8 @@ class Chest(MutableMapping):
             with self.open(keyfile, mode='r'+self.mode) as f:
                 self._keys = dict(self.load(f))
         except:
-            pass
+            if not os.path.exists(self.path):
+                os.mkdir(self.path)
 
         self.lock = Lock()
 
