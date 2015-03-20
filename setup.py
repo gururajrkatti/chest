@@ -5,8 +5,8 @@ from setuptools import setup
 import re
 
 
-version_raw    = open('chest/_version.py').read()
-version_regex  = r"^__version__ = ['\"]([^'\"]*)['\"]"
+version_raw = open('chest/_version.py').read()
+version_regex = r"^__version__ = ['\"]([^'\"]*)['\"]"
 version_result = re.search(version_regex, version_raw, re.M)
 if version_result:
     version_string = version_result.group(1)
