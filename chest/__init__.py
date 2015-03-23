@@ -1,3 +1,2 @@
 from .core import Chest
-
-__version__ = '0.2.1'
+from ._version import __version__
