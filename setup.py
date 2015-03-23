@@ -11,13 +11,13 @@ version_result = re.search(version_regex, version_raw, re.M)
 if version_result:
     version_string = version_result.group(1)
 else:
-    raise RuntimeError("Unable to find version string in %s." % (version_file,))
+    raise RuntimeError("Unable to find version in %s." % (version_file,))
 
 setup(name='chest',
       version=version_string,
       description='Simple on-disk dictionary',
-      url='http://github.com/mrocklin/chest/',
-      author='https://raw.github.com/mrocklin/chest/master/AUTHORS.md',
+      url='https://github.com/ContinuumIO/chest',
+      author='https://raw.githubusercontent.com/ContinuumIO/chest/master/AUTHORS.md',
       maintainer='Matthew Rocklin',
       maintainer_email='mrocklin@gmail.com',
       license='BSD',
