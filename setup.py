@@ -17,7 +17,7 @@ setup(name='chest',
       version=version_string,
       description='Simple on-disk dictionary',
       url='https://github.com/ContinuumIO/chest',
-      author=('https://raw.githubusercontent.com/' + 
+      author=('https://raw.githubusercontent.com/' +
               'ContinuumIO/chest/master/AUTHORS.md'),
       maintainer='Matthew Rocklin',
       maintainer_email='mrocklin@gmail.com',
