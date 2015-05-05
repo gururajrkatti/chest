@@ -23,8 +23,7 @@ The standard library ``shelve`` is an alternative out-of-core dictionary.
 Alternatively one might consider a traditional key-value store database like
 Redis_.
 
-Shove_ is another excellent alternative.  Shove appears to be significantly
-more mature than `chest`.
+Shove_ is another excellent alternative with support for a variety of stores.
 
 
 How it works
@@ -72,9 +71,11 @@ New BSD. See License_
 Install
 -------
 
-``chest`` is on the Python Package Index (PyPI):
+``chest`` is available through ``conda``::
 
-::
+    conda install chest
+
+``chest`` is on the Python Package Index (PyPI)::
 
     pip install chest
 
