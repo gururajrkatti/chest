@@ -15,6 +15,7 @@ from heapdict import heapdict
 import hashlib
 
 DEFAULT_AVAILABLE_MEMORY = 1e9
+MAX_OPEN_FILES = 512
 
 
 def key_to_filename(key):
@@ -310,14 +311,16 @@ class Chest(MutableMapping):
             keys = [keys, ]
         keys = [k for k in keys if k not in self.inmem]
         fns = [self.key_to_filename(k) for k in keys]
-        with self.open_many(fns, mode='r'+self.mode) as fs:
-            for f, k in zip(fs, keys):
-                value = self.load(f)
-                self.inmem[k] = value
-                self.memory_usage += nbytes(value)
-                self._update_lru(k)
-                with self.lock:
-                    self.shrink()
+        for i in range(0, len(fns), MAX_OPEN_FILES):
+            top = min(len(fns), i + MAX_OPEN_FILES)
+            with self.open_many(fns[i:top], mode='r'+self.mode) as fs:
+                for f, k in zip(fs, keys[i:top]):
+                    value = self.load(f)
+                    self.inmem[k] = value
+                    self.memory_usage += nbytes(value)
+                    self._update_lru(k)
+                    with self.lock:
+                        self.shrink()
 
 
 def nbytes(o):
