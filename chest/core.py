@@ -88,7 +88,8 @@ class Chest(MutableMapping):
 
     >>> c.drop()
     """
-    def __init__(self, data=None, path=None, available_memory=None,
+    def __init__(self, data=None, path=None,
+                 available_memory=DEFAULT_AVAILABLE_MEMORY,
                  dump=partial(pickle.dump, protocol=1),
                  load=pickle.load,
                  key_to_filename=key_to_filename,
@@ -105,8 +106,7 @@ class Chest(MutableMapping):
         # Diretory where the on-disk data will be held
         self.path = path or tempfile.mkdtemp('.chest')
         # Amount of memory we're allowed to use
-        self.available_memory = (available_memory if available_memory
-                                 is not None else DEFAULT_AVAILABLE_MEMORY)
+        self.available_memory = available_memory
         self.memory_usage = sum(map(nbytes, self.inmem.values()))
         # Functions to control disk I/O
         self.load = load
